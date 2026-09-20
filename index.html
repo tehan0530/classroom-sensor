@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>教室感測器｜物聯網技術與應用</title>
+<style>
+  :root{
+    --dark:#0B2027; --teal:#028090; --sea:#00A896; --amb:#F4A259;
+    --ambdk:#9A5A16; --txt:#12333B; --mut:#5F7681; --card:#F1F5F6;
+    --line:#D8E3E6; --red:#B5504A; --bg:#FAFCFC;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+       font-size:15px;line-height:1.6}
+  .wrap{max-width:640px;margin:0 auto;padding:0 16px 48px}
+  header{background:var(--dark);color:#fff;padding:18px 16px 16px;margin-bottom:14px}
+  header .k{font-size:11px;letter-spacing:.14em;color:var(--sea);font-weight:700}
+  header h1{margin:4px 0 2px;font-size:21px}
+  header p{margin:0;font-size:12.5px;color:#9FC5CC}
+
+  .privacy{background:#FFF6E8;border:1.5px solid var(--amb);border-radius:8px;
+           padding:11px 13px;margin-bottom:14px;font-size:13.5px;color:var(--ambdk)}
+  .privacy b{color:var(--ambdk)}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;
+        padding:14px;margin-bottom:14px}
+  .card h2{margin:0 0 10px;font-size:16px;color:var(--teal);
+           display:flex;align-items:center;gap:8px}
+  .num{display:inline-flex;width:22px;height:22px;border-radius:50%;
+       background:var(--teal);color:#fff;font-size:12px;align-items:center;
+       justify-content:center;flex:none}
+
+  button{font-family:inherit;font-size:15px;font-weight:700;border:0;border-radius:8px;
+         padding:13px 18px;cursor:pointer}
+  .primary{background:var(--teal);color:#fff;width:100%}
+  .primary:disabled{background:#B9CDD1}
+  .ghost{background:#fff;color:var(--teal);border:1.5px solid var(--teal)}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row>*{flex:1 1 140px}
+
+  video{width:100%;border-radius:8px;background:#000;display:block;max-width:100%}
+  .hidden{display:none!important}
+
+  .meters{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .meter{background:var(--card);border-radius:8px;padding:10px}
+  .meter .lab{font-size:11.5px;color:var(--mut)}
+  .meter .val{font-size:30px;font-weight:800;line-height:1.15;color:var(--dark);
+              font-variant-numeric:tabular-nums}
+  .bar{height:7px;border-radius:4px;background:#DCE6E8;overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;width:0%;background:var(--teal);transition:width .18s}
+
+  .state{margin-top:12px;border-radius:8px;padding:13px;text-align:center;
+         font-size:18px;font-weight:800;background:var(--card);color:var(--mut)}
+  .state.on{background:#E3F4F1;color:#00695C}
+  .state.off{background:var(--card);color:var(--mut)}
+
+  label.sl{display:block;font-size:13px;color:var(--mut);margin:12px 0 3px}
+  label.sl b{color:var(--txt);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--teal)}
+  input[type=text],input[type=number]{width:100%;font-family:inherit;font-size:15px;
+    padding:10px 11px;border:1px solid var(--line);border-radius:7px;background:#fff}
+
+  .layers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .ly{border:1.5px solid var(--line);border-radius:8px;padding:9px 8px;text-align:center;
+      background:#fff;opacity:.45;transition:.25s}
+  .ly.on{opacity:1;border-color:var(--teal);background:#E9F5F6}
+  .ly .t{font-size:14px;font-weight:800;color:var(--dark)}
+  .ly .s{font-size:10.5px;color:var(--mut);margin-top:1px}
+
+  .log{background:var(--dark);border-radius:8px;padding:10px 12px;color:#C3D8DC;
+       font-family:ui-monospace,"Courier New",monospace;font-size:12px;
+       height:150px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+  .note{font-size:12.5px;color:var(--mut);margin-top:8px}
+  .ok{color:var(--sea);font-weight:700}
+  .err{color:var(--red);font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+  td:first-child{font-weight:700;white-space:nowrap;color:var(--dark);width:82px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="k">物聯網技術與應用　·　範例專題</div>
+  <h1>教室感測器</h1>
+  <p>用手機當感測節點：看動靜、聽音量、把數字送上雲端</p>
+</header>
+
+<div class="wrap">
+
+  <div class="privacy">
+    <b>⚠ 這個網頁不會上傳任何影像或聲音。</b><br>
+    畫面與聲音都只在你自己的手機裡處理，離開手機的<b>只有兩個數字</b>：動靜指數與音量。
+    這件事在工程上叫<b>邊緣運算</b>，也是這個範例最重要的一課。
+  </div>
+
+  <div class="layers">
+    <div class="ly" id="ly1"><div class="t">感知層</div><div class="s">相機 · 麥克風</div></div>
+    <div class="ly" id="ly2"><div class="t">網路層</div><div class="s">HTTP 上傳</div></div>
+    <div class="ly" id="ly3"><div class="t">應用層</div><div class="s">雲端圖表</div></div>
+  </div>
+
+  <!-- 1 感知層 -->
+  <div class="card">
+    <h2><span class="num">1</span>感知層：開啟感測器</h2>
+    <button class="primary" id="btnStart">開始感測（允許相機與麥克風）</button>
+    <div class="note" id="permNote">第一次會跳出權限詢問，按「允許」。
+      如果用電腦，會用電腦的視訊鏡頭與麥克風。</div>
+
+    <div id="sensorArea" class="hidden">
+      <video id="cam" playsinline muted autoplay></video>
+      <canvas id="cv" class="hidden"></canvas>
+
+      <div class="meters">
+        <div class="meter">
+          <div class="lab">動靜指數　MOTION</div>
+          <div class="val" id="vMotion">0</div>
+          <div class="bar"><i id="bMotion"></i></div>
+        </div>
+        <div class="meter">
+          <div class="lab">音量　SOUND</div>
+          <div class="val" id="vSound">0</div>
+          <div class="bar"><i id="bSound"></i></div>
+        </div>
+      </div>
+
+      <div class="state off" id="state">目前：安靜</div>
+
+      <label class="sl">動靜門檻：<b id="tMotionV">12</b>　（超過這個數字就算「有人在動」）</label>
+      <input type="range" id="tMotion" min="1" max="60" value="12">
+      <label class="sl">音量門檻：<b id="tSoundV">25</b></label>
+      <input type="range" id="tSound" min="1" max="90" value="25">
+      <div class="note">
+        <b>這兩條門檻是「人訂的」。</b>這就是 IoT。
+        到了第 15–17 週，我們會讓這兩個數字改成從資料自己學出來 —— 那就變成 AIoT。
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 網路層 -->
+  <div class="card">
+    <h2><span class="num">2</span>網路層：把數字送上雲端</h2>
+    <table>
+      <tr><td>要做什麼</td><td>去 <b>thingspeak.com</b> 註冊（免費），建一個 Channel，
+        兩個欄位分別叫 motion 和 sound，然後把 <b>Write API Key</b> 貼到下面。</td></tr>
+      <tr><td>免費限制</td><td>每 15 秒最多送一次。所以下面預設就是 15 秒。</td></tr>
+    </table>
+    <label class="sl">ThingSpeak Write API Key</label>
+    <input type="text" id="apiKey" placeholder="例如 ABCD1234EFGH5678" autocomplete="off">
+    <label class="sl">多久送一次（秒）：<b id="ivV">15</b></label>
+    <input type="range" id="iv" min="15" max="120" step="5" value="15">
+    <div class="row" style="margin-top:12px">
+      <button class="primary" id="btnUp" disabled>開始上傳</button>
+      <button class="ghost" id="btnCsv">下載 CSV（給 Colab 分析）</button>
+    </div>
+    <div class="note" id="upNote">尚未開始上傳。沒有 API Key 也可以只看本地數字。</div>
+  </div>
+
+  <!-- 3 應用層 -->
+  <div class="card">
+    <h2><span class="num">3</span>應用層：紀錄</h2>
+    <div class="log" id="log">等待開始…</div>
+    <div class="note">
+      資料上去之後，在 ThingSpeak 的 Channel 頁面就會看到即時曲線；
+      把 Channel 設成公開，你就有一個<b>可以貼進履歷的網址</b>。
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const cam=$('cam'), cv=$('cv'), ctx=cv.getContext('2d',{willReadFrequently:true});
+  let prev=null, motion=0, sound=0, analyser=null, audioBuf=null;
+  let rows=[], uploading=false, upTimer=null, lastState=false, lastFlip=0;
+
+  const W=64, H=48;                     // 比對用的小尺寸，夠用又省電
+  cv.width=W; cv.height=H;
+
+  function log(msg, cls){
+    const el=$('log');
+    const t=new Date().toLocaleTimeString('zh-TW',{hour12:false});
+    const line = cls ? `[${t}] <span class="${cls}">${msg}</span>` : `[${t}] ${msg}`;
+    el.innerHTML = line + "\n" + (el.innerHTML==='等待開始…' ? '' : el.innerHTML);
+  }
+
+  // ---------- 感知層 ----------
+  $('btnStart').addEventListener('click', async () => {
+    $('btnStart').disabled = true;
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video:{ facingMode:'environment', width:{ideal:640} },
+        audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+      });
+      cam.srcObject = stream;
+      await cam.play();
+
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ac = new AC();
+      if (ac.state === 'suspended') await ac.resume();
+      const src = ac.createMediaStreamSource(stream);
+      analyser = ac.createAnalyser();
+      analyser.fftSize = 1024;
+      src.connect(analyser);
+      audioBuf = new Float32Array(analyser.fftSize);
+
+      $('sensorArea').classList.remove('hidden');
+      $('permNote').classList.add('hidden');
+      $('ly1').classList.add('on');
+      $('btnUp').disabled = false;
+      log('感測器已啟動：相機 ＋ 麥克風', 'ok');
+      loop();
+    }catch(e){
+      $('btnStart').disabled = false;
+      $('permNote').innerHTML =
+        '<span class="err">打不開感測器：' + e.name + '</span><br>' +
+        '最常見的原因是網址不是 https（相機只在 https 或 localhost 下能用），' +
+        '或是剛剛按了「封鎖」。可以在網址列左邊的鎖頭圖示裡重新允許。';
+    }
+  });
+
+  function readMotion(){
+    ctx.drawImage(cam, 0, 0, W, H);
+    const cur = ctx.getImageData(0,0,W,H).data;
+    if (!prev){ prev = new Uint8ClampedArray(cur); return 0; }
+    let diff = 0;
+    for (let i=0; i<cur.length; i+=4){
+      const g  = (cur[i]*299 + cur[i+1]*587 + cur[i+2]*114) / 1000;
+      const gp = (prev[i]*299 + prev[i+1]*587 + prev[i+2]*114) / 1000;
+      diff += Math.abs(g - gp);
+    }
+    prev.set(cur);
+    return Math.min(100, diff / (W*H) * 2.2);        // 壓到 0–100
+  }
+
+  function readSound(){
+    if (!analyser) return 0;
+    analyser.getFloatTimeDomainData(audioBuf);
+    let s = 0;
+    for (let i=0;i<audioBuf.length;i++) s += audioBuf[i]*audioBuf[i];
+    const rms = Math.sqrt(s / audioBuf.length);
+    const db  = 20 * Math.log10(rms + 1e-9);          // 約 -90 ~ 0
+    return Math.max(0, Math.min(100, (db + 70) * (100/70)));
+  }
+
+  function loop(){
+    if (cam.readyState >= 2){
+      motion = motion*0.6 + readMotion()*0.4;         // 輕度平滑（第 8 週：移動平均）
+      sound  = sound *0.6 + readSound() *0.4;
+
+      $('vMotion').textContent = motion.toFixed(0);
+      $('vSound').textContent  = sound.toFixed(0);
+      $('bMotion').style.width = motion + '%';
+      $('bSound').style.width  = sound  + '%';
+
+      // 遲滯（hysteresis）：上去要超過門檻，下來要掉到門檻的 70% 以下，
+      // 而且狀態至少維持 2 秒才換。不然數值在門檻附近抖動時會一直誤報。
+      const tm = +$('tMotion').value, ts = +$('tSound').value;
+      const hi = (motion > tm)       || (sound > ts);
+      const lo = (motion < tm*0.7)   && (sound < ts*0.7);
+      const now = Date.now();
+      let active = lastState;
+      if (!lastState && hi && now - lastFlip > 2000) active = true;
+      if ( lastState && lo && now - lastFlip > 2000) active = false;
+
+      const el = $('state');
+      el.className = 'state ' + (active ? 'on' : 'off');
+      el.textContent = active ? '目前：有人在活動' : '目前：安靜';
+
+      if (active !== lastState){
+        log(active ? '偵測到活動' : '恢復安靜');
+        lastState = active; lastFlip = now;
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+
+  $('tMotion').addEventListener('input', e => { $('tMotionV').textContent = e.target.value; save(); });
+  $('tSound').addEventListener('input',  e => { $('tSoundV').textContent  = e.target.value; save(); });
+  $('iv').addEventListener('input',      e => { $('ivV').textContent      = e.target.value; save(); });
+  $('apiKey').addEventListener('input', save);
+
+  // ---------- 記住設定（只存在這台裝置的瀏覽器裡，不會上傳） ----------
+  function save(){
+    try{
+      localStorage.setItem('iotdemo', JSON.stringify({
+        k: $('apiKey').value, m: $('tMotion').value, s: $('tSound').value, i: $('iv').value }));
+    }catch(e){ /* 私密瀏覽模式會擋，忽略即可 */ }
+  }
+  function load(){
+    try{
+      const o = JSON.parse(localStorage.getItem('iotdemo') || '{}');
+      if (o.k) $('apiKey').value = o.k;
+      if (o.m) { $('tMotion').value = o.m; $('tMotionV').textContent = o.m; }
+      if (o.s) { $('tSound').value  = o.s; $('tSoundV').textContent  = o.s; }
+      if (o.i) { $('iv').value      = o.i; $('ivV').textContent      = o.i; }
+      if (o.k) $('upNote').innerHTML = '已記住上次填的 API Key（只存在這台裝置）。';
+    }catch(e){ /* 忽略 */ }
+  }
+  load();
+
+  // ---------- 網路層 ----------
+  async function push(){
+    const key = $('apiKey').value.trim();
+    const m = +motion.toFixed(1), s = +sound.toFixed(1);
+    rows.push([new Date().toISOString(), m, s]);
+    $('ly3').classList.add('on');
+
+    if (!key){ log(`本地紀錄　motion=${m}　sound=${s}`); return; }
+    const url = `https://api.thingspeak.com/update?api_key=${encodeURIComponent(key)}`
+              + `&field1=${m}&field2=${s}`;
+    try{
+      const r = await fetch(url);
+      const txt = (await r.text()).trim();
+      if (txt === '0') log('上傳被拒（通常是 15 秒內送太多次，或 API Key 不對）', 'err');
+      else log(`已上傳　motion=${m}　sound=${s}　→ 第 ${txt} 筆`, 'ok');
+    }catch(err){
+      log('上傳失敗：' + err.message, 'err');
+    }
+  }
+
+  $('btnUp').addEventListener('click', () => {
+    uploading = !uploading;
+    if (uploading){
+      $('btnUp').textContent = '停止上傳';
+      $('ly2').classList.add('on');
+      const ms = (+$('iv').value) * 1000;
+      push();
+      upTimer = setInterval(push, ms);
+      $('upNote').innerHTML = '每 <b>' + $('iv').value + '</b> 秒送一次。'
+        + ($('apiKey').value.trim() ? '' : '（沒有 API Key，只做本地紀錄）');
+    }else{
+      $('btnUp').textContent = '開始上傳';
+      $('ly2').classList.remove('on');
+      clearInterval(upTimer);
+      $('upNote').textContent = '已停止。已收集 ' + rows.length + ' 筆，可以下載 CSV。';
+    }
+  });
+
+  $('btnCsv').addEventListener('click', () => {
+    if (!rows.length){ alert('還沒有資料。先按「開始上傳」收集一段時間。'); return; }
+    const csv = 'timestamp,motion,sound\n'
+      + rows.map(r => r.join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+    a.download = 'classroom_sensor.csv';
+    a.click();
+    log('已下載 CSV（' + rows.length + ' 筆）', 'ok');
+  });
+})();
+</script>
+</body>
+</html>
